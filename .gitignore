@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Enviroment variables
+.env
+.env*.
+
+# IntelliJ IDEA
+.idea/
+
+# Fichiers .iml
+*.iml
