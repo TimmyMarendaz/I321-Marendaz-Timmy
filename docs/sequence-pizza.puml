@@ -1,0 +1,15 @@
+@startuml
+
+actor Client
+participant "API" as API
+participant "Pizza Controller" as Controller
+database "Base de données" as DB
+
+Client -> API : POST /pizzas
+API -> Controller : créerPizza()
+Controller -> DB : créer pizza
+DB --> Controller : pizza créée
+Controller --> API : 201 Created
+API --> Client : 201 Created
+
+@enduml
