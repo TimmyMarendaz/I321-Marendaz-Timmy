@@ -1,12 +1,12 @@
 # Dependencies
 node_modules/
 
-# Enviroment variables
+# Environment variables
 .env
-.env*.
 
-# IntelliJ IDEA
+# Local database
+dev.sqlite
+
+# IntelliJ IDEA / JetBrains
 .idea/
-
-# Fichiers .iml
 *.iml

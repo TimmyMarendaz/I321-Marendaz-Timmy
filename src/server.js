@@ -1,6 +1,12 @@
 require('dotenv').config();
 const app = require('./app');
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`API listening on port ${PORT}`);
+
+const port = process.env.PORT || 3000;
+
+app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`Swagger UI: http://localhost:${port}/docs`);
+    }
 });
