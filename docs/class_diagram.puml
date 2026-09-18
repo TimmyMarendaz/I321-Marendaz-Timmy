@@ -1,0 +1,28 @@
+@startuml
+
+class Pizza {
+  + id : Integer
+  + name : Text
+  + ingredients : Text
+  + imageUrl : Text
+  + price : Real
+  + created_at : DateTime
+  + updated_at : DateTime
+}
+
+class Ingredient {
+  + id : Integer
+  + name : Text
+  + price : Real
+  + created_at : DateTime
+  + updated_at : DateTime
+}
+
+note right of Pizza
+  Étape 03 : ingredients reste encore
+  une simple liste texte dans Pizza.
+  Les deux ressources ne sont pas
+  encore liées dans le code.
+end note
+
+@enduml

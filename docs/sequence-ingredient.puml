@@ -1,0 +1,20 @@
+@startuml
+
+actor Client
+participant "API" as API
+participant "Ingredients Controller" as Controller
+participant "Ingredient Entity" as Entity
+database "SQLite" as DB
+
+Client -> API : POST /api/ingredients
+API -> Controller : create(req, res)
+Controller -> Entity : create({ name, price })
+Entity -> DB : INSERT ingredient
+DB --> Entity : id créé
+Entity -> DB : SELECT ingredient
+DB --> Entity : ingredient
+Entity --> Controller : ingredient créé
+Controller --> API : 201 Created
+API --> Client : JSON ingredient
+
+@enduml

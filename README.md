@@ -88,14 +88,32 @@ src/
 ├── config/
 │   ├── database.js
 │   └── swagger.js
-├── controllers/
-│   ├── pizzasController.js
-│   └── ingredientsController.js
-├── entities/
+├── ingredients/
+│   ├── Ingredient.js
+│   ├── ingredientsController.js
+│   └── ingredientsRouter.js
+├── pizzas/
 │   ├── Pizza.js
-│   └── Ingredient.js
+│   ├── pizzasController.js
+│   └── pizzasRouter.js
 └── routes/
-    ├── router.js
-    ├── pizzas.js
-    └── ingredients.js
+    └── router.js
 ```
+
+Chaque ressource regroupe sa couche présentation (`*Router.js`), sa logique
+métier (`*Controller.js`) et son accès aux données (`Ingredient.js` ou `Pizza.js`).
+Le serveur, l'application, la connexion SQLite et la configuration Swagger sont
+communs. Le routeur principal monte les deux ressources sous `/api`.
+
+Les fichiers `src/routes/users.js` et `src/controllers/usercontroller.js` sont
+des exemples du squelette initial, non utilisés par l'API Foodtruck.
+
+## Tests
+
+```bash
+npm test -- --runInBand
+```
+
+Les tests utilisent une base SQLite en mémoire et vérifient les routes CRUD,
+la validation, les erreurs, l'indépendance des pizzas et la documentation Swagger.
+Ils ne modifient pas `dev.sqlite`.

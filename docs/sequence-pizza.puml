@@ -3,12 +3,17 @@
 actor Client
 participant "API" as API
 participant "Pizza Controller" as Controller
+participant "Pizza Entity" as Entity
 database "Base de données" as DB
 
-Client -> API : POST /pizzas
-API -> Controller : créerPizza()
-Controller -> DB : créer pizza
-DB --> Controller : pizza créée
+Client -> API : POST /api/pizzas
+API -> Controller : create(req, res)
+Controller -> Entity : create({ name, ingredients, imageUrl, price })
+Entity -> DB : INSERT pizza
+DB --> Entity : id créé
+Entity -> DB : SELECT pizza
+DB --> Entity : pizza
+Entity --> Controller : pizza créée
 Controller --> API : 201 Created
 API --> Client : 201 Created
 

@@ -15,11 +15,11 @@ app.use('/api', router);
 // Alias conservé pour rester compatible avec le squelette du cours.
 app.use('/api/v1', router);
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/docs/swagger.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);
 });
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => {
     res.json({ status: 'ok', message: 'Foodtruck API' });
