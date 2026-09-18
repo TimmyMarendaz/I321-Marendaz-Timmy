@@ -1,20 +1,92 @@
 @startuml
+title Étape 04 — Création d'une pizza et de ses associations
+autonumber
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
 
 actor Client
-participant "API" as API
-participant "Pizza Controller" as Controller
-participant "Pizza Entity" as Entity
-database "Base de données" as DB
+boundary "API / pizzasRouter" as API
+control "pizzasController" as PC
+control "ingredientsController" as IC
+entity "Ingredient" as IE
+entity "Pizza" as PE
+database "SQLite" as DB
 
-Client -> API : POST /api/pizzas
-API -> Controller : create(req, res)
-Controller -> Entity : create({ name, ingredients, imageUrl, price })
-Entity -> DB : INSERT pizza
-DB --> Entity : id créé
-Entity -> DB : SELECT pizza
-DB --> Entity : pizza
-Entity --> Controller : pizza créée
-Controller --> API : 201 Created
-API --> Client : 201 Created
+Client -> API : POST /api/pizzas\n{name, imageUrl, price, ingredients: [1, 2]}
+API -> PC : create(req, res, next)
+PC -> PC : valider les paramètres obligatoires et leurs types
+note left of PC
+  name : chaîne non vide
+  imageUrl : chaîne URL valide
+  price : nombre > 0
+  ingredients : tableau non vide
+  d'entiers positifs distincts
+end note
+
+break Paramètre absent ou type / valeur invalide
+  PC -> PC : lever ValidationError
+  PC --> API : exception (400)
+  API --> Client : 400 Bad Request + détails
+end
+
+PC -> IC : requireExisting(ingredientIds)
+IC -> IE : findByIds(ingredientIds)
+IE -> DB : SELECT ... FROM ingredients WHERE id IN (...)
+DB --> IE : ingrédients trouvés
+IE --> IC : ingrédients trouvés
+IC -> IC : comparer les IDs demandés aux IDs trouvés
+
+break Au moins un ingrédient n'existe pas
+  IC -> IC : lever IngredientNotFoundError
+  IC --> PC : exception + IDs manquants
+  PC --> API : exception (400)
+  API --> Client : 400 Bad Request + IDs manquants
+end
+
+IC --> PC : ingrédients existants validés
+note over PC, IE
+  Le dialogue entre ressources passe par leurs contrôleurs.
+  pizzasController n'appelle jamais l'entité Ingredient.
+end note
+
+PC -> PE : createWithIngredients(pizzaData, ingredientIds)
+PE -> DB : BEGIN IMMEDIATE
+DB --> PE : transaction ouverte
+PE -> DB : INSERT INTO pizzas (name, imageUrl, price, ...)
+
+alt Nom de pizza déjà utilisé (contrainte UNIQUE)
+  DB --> PE : violation UNIQUE(pizzas.name)
+  PE -> DB : ROLLBACK
+  DB --> PE : transaction annulée
+  PE --> PC : exception de contrainte
+  PC -> PC : lever PizzaNameAlreadyExistsError
+  PC --> API : exception (409)
+  API --> Client : 409 Conflict + nom déjà utilisé
+else Pizza insérée
+  DB --> PE : pizzaId
+  loop Pour chaque ingredientId validé, tant qu'aucune insertion n'échoue
+    PE -> DB : INSERT INTO pizza_ingredients\n(pizza_id, ingredient_id)
+    DB --> PE : lien créé ou erreur de contrainte
+  end
+  alt Échec d'insertion d'un lien
+    PE -> DB : ROLLBACK
+    DB --> PE : pizza et liens annulés
+    PE --> PC : exception de persistance
+    PC --> API : erreur (409 si conflit FK, sinon 500)
+    API --> Client : échec ; aucune pizza partiellement créée
+  else Tous les liens sont créés
+    PE -> DB : COMMIT
+    DB --> PE : transaction validée
+    PE --> PC : pizza créée
+    PC -> PC : ajouter les ingrédients validés à la réponse
+    PC --> API : pizza avec ses ingrédients
+    API --> Client : 201 Created + JSON
+  end
+end
+
+legend bottom
+  Contrat cible proposé pour l'étape 04 (modélisation).
+  Les exceptions sont traduites en réponses HTTP par l'API.
+endlegend
 
 @enduml

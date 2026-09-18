@@ -1,28 +1,40 @@
 @startuml
+!pragma layout smetana
+title Étape 04 — Diagramme de classes métier
+skinparam classAttributeIconSize 0
+hide methods
 
 class Pizza {
   + id : Integer
-  + name : Text
-  + ingredients : Text
-  + imageUrl : Text
-  + price : Real
+  + name : String {unique}
+  + imageUrl : String
+  + price : Decimal
   + created_at : DateTime
   + updated_at : DateTime
 }
 
 class Ingredient {
   + id : Integer
-  + name : Text
-  + price : Real
+  + name : String {unique}
+  + price : Decimal
   + created_at : DateTime
   + updated_at : DateTime
 }
 
-note right of Pizza
-  Étape 03 : ingredients reste encore
-  une simple liste texte dans Pizza.
-  Les deux ressources ne sont pas
-  encore liées dans le code.
+Pizza "1..*" -- "1..*" Ingredient : contient >
+
+note bottom of Pizza
+  Une pizza contient au moins un ingrédient existant.
+  Le nom d'une pizza est unique.
+  ingredients n'est plus un attribut texte :
+  la composition est représentée par l'association.
+end note
+
+note bottom of Ingredient
+  Un même ingrédient peut être partagé
+  par plusieurs pizzas (relation plusieurs-à-plusieurs).
+  Il possède son propre cycle de vie :
+  ce lien n'est pas une composition UML.
 end note
 
 @enduml

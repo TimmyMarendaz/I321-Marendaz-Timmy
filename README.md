@@ -1,6 +1,67 @@
 # Foodtruck API — I321
 
-Projet réalisé pour les étapes 02 et 03 du laboratoire Foodtruck.
+Projet Foodtruck : API des étapes 02–03 et modélisation de l'étape 04.
+
+## Étape 04 — Lier les pizzas et les ingrédients
+
+La [consigne de modélisation](https://jithurbide-cpnv.github.io/I321-2026/laboratoires/projet-foodtruck/etape-04-lier-deux-ressources-pizzas-et-ingredients/modelisation/)
+demande trois diagrammes PlantUML. Ils décrivent le modèle cible ; l'API exécutable
+et sa base restent à l'étape 03. Les exemples d'API ci-dessous correspondent à cette
+version existante.
+
+| Livrable | Source PlantUML | Aperçu |
+| --- | --- | --- |
+| Diagramme de classes | [class_diagram.puml](docs/class_diagram.puml) | [SVG](docs/rendered/class_diagram.svg) |
+| Modèle logique de données | [logical_data_model.puml](docs/logical_data_model.puml) | [SVG](docs/rendered/logical_data_model.svg) |
+| Séquence de création d'une pizza | [sequence-pizza.puml](docs/sequence-pizza.puml) | [SVG](docs/rendered/sequence-pizza.svg) |
+
+Le modèle reprend les cardinalités `1..*` de l'énoncé de chaque côté : une pizza
+contient au moins un ingrédient et un ingrédient peut être partagé entre plusieurs
+pizzas. La table `pizza_ingredients` porte les deux clés étrangères et une clé
+primaire composée, qui interdit les associations en double. Les cardinalités
+minimales sont des règles métier : les clés étrangères seules ne les garantissent
+pas. Un ingrédient nouvellement saisi dans le catalogue peut être en attente de son
+affectation ; les diagrammes décrivent les compositions finalisées.
+
+### Contrat proposé pour la future création d'une pizza
+
+Tous les champs suivants sont obligatoires dans le modèle cible. `ingredients`
+contient des identifiants existants, entiers positifs et distincts ; le tableau
+contient au moins un élément. `name` est une chaîne non vide, `imageUrl` une URL
+et `price` un nombre strictement positif.
+
+```json
+{
+  "name": "Margherita",
+  "imageUrl": "https://example.com/margherita.png",
+  "price": 12,
+  "ingredients": [1, 2]
+}
+```
+
+Les identifiants `1` et `2` sont illustratifs et devront exister dans le catalogue.
+Le prix de la pizza reste fourni explicitement ; aucun calcul de prix n'est imposé
+par cet exercice.
+
+| Critère d'acceptation | Traitement représenté dans la séquence |
+| --- | --- |
+| Paramètre manquant ou de mauvais type | `ValidationError`, réponse HTTP 400 avant toute écriture |
+| Ingrédient inexistant | `IngredientNotFoundError`, réponse HTTP 400 avec les IDs manquants |
+| Nom de pizza déjà utilisé | Contrainte UNIQUE, annulation de la transaction et `PizzaNameAlreadyExistsError`, HTTP 409 |
+| Dialogue entre ressources | `pizzasController` appelle `ingredientsController.requireExisting()` ; seul ce dernier accède à l'entité `Ingredient` |
+
+Les noms de méthodes et les codes HTTP ci-dessus sont les choix de conception
+proposés ; ils ne sont pas encore implémentés. La création d'une pizza et de ses
+associations forme une seule transaction : un échec annule l'ensemble. Les clés
+étrangères protègent aussi contre la suppression concurrente d'un ingrédient entre
+sa vérification et son association. Supprimer une pizza supprime ses liens ;
+supprimer un ingrédient encore utilisé est refusé.
+
+Pour régénérer les aperçus avec PlantUML (Java 11 ou plus récent) :
+
+```bash
+java -jar plantuml.jar -charset UTF-8 -tsvg -o rendered docs/class_diagram.puml docs/logical_data_model.puml docs/sequence-pizza.puml
+```
 
 ## Fonctionnalités
 

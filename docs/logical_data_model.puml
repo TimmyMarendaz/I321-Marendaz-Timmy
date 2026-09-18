@@ -1,0 +1,60 @@
+@startuml
+!pragma layout smetana
+title Étape 04 — Modèle logique de données
+skinparam linetype ortho
+
+entity pizzas {
+  * id : INTEGER <<PK>>
+  --
+  * name : TEXT <<UNIQUE>>
+  * imageUrl : TEXT
+  * price : REAL
+  * created_at : TEXT
+  * updated_at : TEXT
+}
+
+entity pizza_ingredients {
+  * pizza_id : INTEGER <<PK, FK>>
+  * ingredient_id : INTEGER <<PK, FK>>
+}
+
+entity ingredients {
+  * id : INTEGER <<PK>>
+  --
+  * name : TEXT <<UNIQUE>>
+  * price : REAL
+  * created_at : TEXT
+  * updated_at : TEXT
+}
+
+pizzas ||--|{ pizza_ingredients : pizza_id
+ingredients ||--|{ pizza_ingredients : ingredient_id
+
+note bottom of pizza_ingredients
+  PK composée : (pizza_id, ingredient_id).
+  Un ingrédient ne figure qu'une fois dans une pizza.
+  FK pizza_id -> pizzas.id : ON DELETE CASCADE.
+  FK ingredient_id -> ingredients.id : ON DELETE RESTRICT.
+  Supprimer une pizza retire ses associations,
+  sans supprimer les ingrédients partagés.
+end note
+
+note bottom of pizzas
+  CHECK(price > 0) ; name non vide.
+  L'ancienne colonne ingredients TEXT est remplacée
+  par les lignes de la table d'association.
+  Création de la pizza et de ses liens : une transaction.
+end note
+
+note bottom of ingredients
+  CHECK(price >= 0) ; name non vide.
+  Les minima métier 1..* sont contrôlés
+  par la logique applicative : une FK ne suffit pas.
+  SQLite : PRAGMA foreign_keys = ON.
+end note
+
+legend bottom
+  * = NOT NULL ; PK = clé primaire ; FK = clé étrangère.
+  Modèle cible de l'étape 04, non encore appliqué à dev.sqlite.
+endlegend
+@enduml
