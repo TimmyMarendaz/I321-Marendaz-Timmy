@@ -1,173 +1,98 @@
-# Foodtruck API — I321
+# Foodtruck — Étape 05
 
-Projet Foodtruck : API des étapes 02–03 et modélisation de l'étape 04.
+Deux microservices indépendants, conformément aux
+[consignes de l'étape 05](https://jithurbide-cpnv.github.io/I321-2026/laboratoires/projet-foodtruck/etape-05-deux-micro-services-independants/).
 
-## Étape 04 — Lier les pizzas et les ingrédients
+| Microservice | Port | Base SQLite | Ressource |
+| --- | --- | --- | --- |
+| `ms-ingredients` | 3001 | `ms-ingredients/ingredients.sqlite` | `/api/ingredients` |
+| `ms-pizzas` | 3000 | `ms-pizzas/pizzas.sqlite` | `/api/pizzas` |
 
-La [consigne de modélisation](https://jithurbide-cpnv.github.io/I321-2026/laboratoires/projet-foodtruck/etape-04-lier-deux-ressources-pizzas-et-ingredients/modelisation/)
-demande trois diagrammes PlantUML. Ils décrivent le modèle cible ; l'API exécutable
-et sa base restent à l'étape 03. Les exemples d'API ci-dessous correspondent à cette
-version existante.
+Chaque dossier possède son serveur, sa configuration et ses dépendances.
+Le service pizzas ne contient aucune table ni entité Ingredient : il communique
+avec le service ingrédients par HTTP via `INGREDIENTS_SERVICE_URL`.
+Les CRUD restent utilisables indépendamment ; seuls l'ajout d'une composition et
+la lecture détaillée d'une pizza composée nécessitent le service ingrédients.
 
-| Livrable | Source PlantUML | Aperçu |
+## Installation et lancement
+
+Node.js 18 ou plus récent.
+
+À la racine :
+
+```bash
+npm ci
+```
+
+Copier le `.env.example` de chaque microservice vers un `.env` dans le même
+dossier si vous souhaitez modifier les valeurs par défaut.
+
+Démarrer dans deux terminaux :
+
+```bash
+npm run start:ingredients
+```
+
+```bash
+npm run start:pizzas
+```
+
+Pour démarrer un seul service sur un autre nœud : copier son dossier, puis
+`npm install` et `npm start` dans ce dossier. Dans `ms-pizzas/.env`,
+configurer `INGREDIENTS_SERVICE_URL` avec l'adresse du serveur ingrédients
+(par exemple `http://192.168.1.10:3001`).
+
+`DB_FILE` est résolu à partir du dossier du microservice, même si le lancement
+se fait depuis la racine. Aucun fichier SQLite n'est partagé entre les services.
+
+## API et documentation
+
+Les deux services gardent les routes CRUD :
+`GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`
+sous leur ressource. L'alias `/api/v1` reste disponible.
+
+- Swagger pizzas : <http://localhost:3000/docs>
+- Swagger ingrédients : <http://localhost:3001/docs>
+- Spécification JSON : `/docs/swagger.json` sur chaque serveur.
+
+Créer un ingrédient sur le port 3001, avec `POST /api/ingredients` :
+
+```json
+{ "name": "Mozzarella", "price": 2 }
+```
+
+Créer une pizza sur le port 3000, avec `POST /api/pizzas` :
+
+```json
+{ "name": "Margherita", "imageUrl": "https://example.com/pizza.png", "price": 12 }
+```
+
+Le texte `ingredients` a été retiré du modèle Pizza. La composition se gère
+avec les routes suivantes, sur le serveur pizzas :
+
+| Méthode | Route | Action |
 | --- | --- | --- |
-| Diagramme de classes | [class_diagram.puml](docs/class_diagram.puml) | [SVG](docs/rendered/class_diagram.svg) |
-| Modèle logique de données | [logical_data_model.puml](docs/logical_data_model.puml) | [SVG](docs/rendered/logical_data_model.svg) |
-| Séquence de création d'une pizza | [sequence-pizza.puml](docs/sequence-pizza.puml) | [SVG](docs/rendered/sequence-pizza.svg) |
+| POST | `/api/pizzas/:id/compositions` | Ajoute un ingrédient après validation HTTP |
+| GET | `/api/pizzas/:id/compositions` | Liste les associations locales |
+| DELETE | `/api/pizzas/:id/compositions` | Retire toutes les associations |
+| GET | `/api/pizzas/:id/full` | Retourne la pizza et les ingrédients obtenus par HTTP |
 
-Le modèle reprend les cardinalités `1..*` de l'énoncé de chaque côté : une pizza
-contient au moins un ingrédient et un ingrédient peut être partagé entre plusieurs
-pizzas. La table `pizza_ingredients` porte les deux clés étrangères et une clé
-primaire composée, qui interdit les associations en double. Les cardinalités
-minimales sont des règles métier : les clés étrangères seules ne les garantissent
-pas. Un ingrédient nouvellement saisi dans le catalogue peut être en attente de son
-affectation ; les diagrammes décrivent les compositions finalisées.
-
-### Contrat proposé pour la future création d'une pizza
-
-Tous les champs suivants sont obligatoires dans le modèle cible. `ingredients`
-contient des identifiants existants, entiers positifs et distincts ; le tableau
-contient au moins un élément. `name` est une chaîne non vide, `imageUrl` une URL
-et `price` un nombre strictement positif.
+Corps de l'ajout (utiliser un identifiant existant retourné par le service ingrédients) :
 
 ```json
-{
-  "name": "Margherita",
-  "imageUrl": "https://example.com/margherita.png",
-  "price": 12,
-  "ingredients": [1, 2]
-}
+{ "item_id": 1 }
 ```
 
-Les identifiants `1` et `2` sont illustratifs et devront exister dans le catalogue.
-Le prix de la pizza reste fourni explicitement ; aucun calcul de prix n'est imposé
-par cet exercice.
+La table `product_compositions` contient `id`, `product_id` (pizza locale),
+`item_id` (ingrédient distant) et `created_at`. Une contrainte UNIQUE interdit
+les doublons. La clé étrangère locale supprime les compositions lorsque la pizza
+est supprimée. Aucune clé étrangère ne traverse les deux bases.
 
-| Critère d'acceptation | Traitement représenté dans la séquence |
-| --- | --- |
-| Paramètre manquant ou de mauvais type | `ValidationError`, réponse HTTP 400 avant toute écriture |
-| Ingrédient inexistant | `IngredientNotFoundError`, réponse HTTP 400 avec les IDs manquants |
-| Nom de pizza déjà utilisé | Contrainte UNIQUE, annulation de la transaction et `PizzaNameAlreadyExistsError`, HTTP 409 |
-| Dialogue entre ressources | `pizzasController` appelle `ingredientsController.requireExisting()` ; seul ce dernier accède à l'entité `Ingredient` |
-
-Les noms de méthodes et les codes HTTP ci-dessus sont les choix de conception
-proposés ; ils ne sont pas encore implémentés. La création d'une pizza et de ses
-associations forme une seule transaction : un échec annule l'ensemble. Les clés
-étrangères protègent aussi contre la suppression concurrente d'un ingrédient entre
-sa vérification et son association. Supprimer une pizza supprime ses liens ;
-supprimer un ingrédient encore utilisé est refusé.
-
-Pour régénérer les aperçus avec PlantUML (Java 11 ou plus récent) :
-
-```bash
-java -jar plantuml.jar -charset UTF-8 -tsvg -o rendered docs/class_diagram.puml docs/logical_data_model.puml docs/sequence-pizza.puml
-```
-
-## Fonctionnalités
-
-- CRUD complet des pizzas
-- CRUD complet des ingrédients
-- SQLite comme couche de données
-- Validation des entrées avec `express-validator`
-- Documentation Swagger disponible dans le navigateur
-- Les ingrédients sont encore indépendants des pizzas, conformément à l'étape 03
-
-## Installation
-
-```bash
-npm install
-```
-
-Copier `.env.example` vers `.env` si nécessaire :
-
-```env
-PORT=3000
-DB_FILE=./dev.sqlite
-NODE_ENV=development
-```
-
-## Démarrage
-
-```bash
-npm start
-```
-
-Mode développement :
-
-```bash
-npm run dev
-```
-
-## URLs
-
-- API : `http://localhost:3000/api`
-- Swagger : `http://localhost:3000/docs`
-- JSON Swagger : `http://localhost:3000/docs/swagger.json`
-
-## Routes Pizzas
-
-- `GET /api/pizzas`
-- `POST /api/pizzas`
-- `GET /api/pizzas/:id`
-- `PUT /api/pizzas/:id`
-- `DELETE /api/pizzas/:id`
-
-Exemple de pizza :
-
-```json
-{
-  "name": "Margherita",
-  "ingredients": "Sauce tomate, mozzarella",
-  "imageUrl": "https://picsum.photos/200",
-  "price": 12
-}
-```
-
-## Routes Ingredients
-
-- `GET /api/ingredients`
-- `POST /api/ingredients`
-- `GET /api/ingredients/:id`
-- `PUT /api/ingredients/:id`
-- `DELETE /api/ingredients/:id`
-
-Exemple d'ingrédient :
-
-```json
-{
-  "name": "Champignons",
-  "price": 1
-}
-```
-
-## Structure
-
-```text
-src/
-├── app.js
-├── server.js
-├── config/
-│   ├── database.js
-│   └── swagger.js
-├── ingredients/
-│   ├── Ingredient.js
-│   ├── ingredientsController.js
-│   └── ingredientsRouter.js
-├── pizzas/
-│   ├── Pizza.js
-│   ├── pizzasController.js
-│   └── pizzasRouter.js
-└── routes/
-    └── router.js
-```
-
-Chaque ressource regroupe sa couche présentation (`*Router.js`), sa logique
-métier (`*Controller.js`) et son accès aux données (`Ingredient.js` ou `Pizza.js`).
-Le serveur, l'application, la connexion SQLite et la configuration Swagger sont
-communs. Le routeur principal monte les deux ressources sous `/api`.
-
-Les fichiers `src/routes/users.js` et `src/controllers/usercontroller.js` sont
-des exemples du squelette initial, non utilisés par l'API Foodtruck.
+Un ingrédient inexistant lors de l'ajout produit HTTP 400, un doublon HTTP 409,
+une pizza absente HTTP 404 et un service ingrédients indisponible HTTP 503
+(délai maximal de 5 secondes). Les modifications du catalogue sont visibles
+sur `/full`. Si un ingrédient associé a ensuite été supprimé, cette lecture
+retourne HTTP 404 ; retirer les compositions permet de corriger les références.
 
 ## Tests
 
@@ -175,6 +100,8 @@ des exemples du squelette initial, non utilisés par l'API Foodtruck.
 npm test -- --runInBand
 ```
 
-Les tests utilisent une base SQLite en mémoire et vérifient les routes CRUD,
-la validation, les erreurs, l'indépendance des pizzas et la documentation Swagger.
-Ils ne modifient pas `dev.sqlite`.
+Les tests démarrent deux serveurs HTTP avec deux bases en mémoire et vérifient
+les CRUD, l'isolation des routes et des tables, la documentation, les compositions,
+les erreurs distantes et la suppression des associations.
+
+Les diagrammes dans `docs/` conservent la modélisation historique de l'étape 04.

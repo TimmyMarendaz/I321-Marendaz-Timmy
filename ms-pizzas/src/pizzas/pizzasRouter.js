@@ -10,7 +10,6 @@ const idValidation = [
 
 const pizzaValidation = [
     body('name').isString().trim().notEmpty().withMessage('name is required'),
-    body('ingredients').optional({ nullable: true }).isString().withMessage('ingredients must be a string'),
     body('imageUrl')
         .optional({ nullable: true, checkFalsy: true })
         .isURL()
@@ -41,9 +40,6 @@ const pizzaValidation = [
  *               name:
  *                 type: string
  *                 example: Margherita
- *               ingredients:
- *                 type: string
- *                 example: Sauce tomate, mozzarella
  *               imageUrl:
  *                 type: string
  *                 example: https://picsum.photos/200
@@ -92,8 +88,6 @@ const pizzaValidation = [
  *             properties:
  *               name:
  *                 type: string
- *               ingredients:
- *                 type: string
  *               imageUrl:
  *                 type: string
  *               price:
@@ -120,6 +114,8 @@ const pizzaValidation = [
  *       404:
  *         description: Pizza not found
  */
+router.use(require('./compositionsRouter'));
+
 router.get('/', pizzasController.findAll);
 router.post('/', pizzaValidation, pizzasController.create);
 router.get('/:id', idValidation, pizzasController.findOne);

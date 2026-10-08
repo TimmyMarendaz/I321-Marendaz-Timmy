@@ -5,8 +5,11 @@ coverage/
 # Environment variables
 .env
 
-# Local database
-dev.sqlite
+# Local databases
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # IntelliJ IDEA / JetBrains
 .idea/

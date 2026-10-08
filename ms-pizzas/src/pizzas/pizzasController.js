@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const Pizza = require('./Pizza');
+const PizzaService = require('../services/pizzasService');
 
 function sendValidationErrors(req, res) {
     const errors = validationResult(req);
@@ -16,8 +16,8 @@ exports.create = async (req, res, next) => {
     try {
         if (sendValidationErrors(req, res)) return;
 
-        const { name, ingredients, imageUrl, price } = req.body;
-        const created = await Pizza.create({ name, ingredients, imageUrl, price });
+        const { name, imageUrl, price } = req.body;
+        const created = await PizzaService.create({ name, imageUrl, price });
         return res.status(201).json(created);
     } catch (err) {
         if (err.code === 'SQLITE_CONSTRAINT') {
@@ -29,7 +29,7 @@ exports.create = async (req, res, next) => {
 
 exports.findAll = async (req, res, next) => {
     try {
-        return res.status(200).json(await Pizza.findAll());
+        return res.status(200).json(await PizzaService.findAll());
     } catch (err) {
         return next(err);
     }
@@ -39,7 +39,7 @@ exports.findOne = async (req, res, next) => {
     try {
         if (sendValidationErrors(req, res)) return;
 
-        const pizza = await Pizza.findById(Number(req.params.id));
+        const pizza = await PizzaService.findById(Number(req.params.id));
         if (!pizza) return res.status(404).json({ error: 'Pizza not found' });
 
         return res.status(200).json(pizza);
@@ -52,10 +52,9 @@ exports.update = async (req, res, next) => {
     try {
         if (sendValidationErrors(req, res)) return;
 
-        const { name, ingredients, imageUrl, price } = req.body;
-        const updated = await Pizza.update(Number(req.params.id), {
+        const { name, imageUrl, price } = req.body;
+        const updated = await PizzaService.update(Number(req.params.id), {
             name,
-            ingredients,
             imageUrl,
             price
         });
@@ -74,9 +73,48 @@ exports.delete = async (req, res, next) => {
     try {
         if (sendValidationErrors(req, res)) return;
 
-        const deleted = await Pizza.delete(Number(req.params.id));
+        const deleted = await PizzaService.delete(Number(req.params.id));
         if (deleted === 0) return res.status(404).json({ error: 'Pizza not found' });
 
+        return res.status(204).send();
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.getWithIngredients = async (req, res, next) => {
+    try {
+        if (sendValidationErrors(req, res)) return;
+        return res.json(await PizzaService.getWithIngredients(Number(req.params.id)));
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.getCompositions = async (req, res, next) => {
+    try {
+        if (sendValidationErrors(req, res)) return;
+        return res.json(await PizzaService.getCompositions(Number(req.params.id)));
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.addComposition = async (req, res, next) => {
+    try {
+        if (sendValidationErrors(req, res)) return;
+        return res.status(201).json(await PizzaService.addComposition(
+            Number(req.params.id), req.body.item_id
+        ));
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.deleteCompositions = async (req, res, next) => {
+    try {
+        if (sendValidationErrors(req, res)) return;
+        await PizzaService.deleteCompositions(Number(req.params.id));
         return res.status(204).send();
     } catch (err) {
         return next(err);

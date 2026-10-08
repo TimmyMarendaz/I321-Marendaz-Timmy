@@ -5,12 +5,12 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Foodtruck API',
+            title: 'Foodtruck ingredients API',
             version: '1.0.0',
-            description: 'REST API pour gérer les pizzas et les ingrédients du Foodtruck.'
+            description: 'REST API du microservice ingredients.'
         },
         servers: [
-            { url: 'http://localhost:3000', description: 'Local development server' }
+            { url: '/', description: 'Local development server' }
         ]
     },
     apis: [path.join(__dirname, '..', '*', '*Router.js').replace(/\\/g, '/')]

@@ -1,7 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
-const router = require('./routes/router');
+const router = require('./ingredients/ingredientsRouter');
 const swaggerSpec = require('./config/swagger');
 
 const app = express();
@@ -10,10 +10,10 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 // API du projet Foodtruck.
-app.use('/api', router);
+app.use('/api/ingredients', router);
 
 // Alias conservé pour rester compatible avec le squelette du cours.
-app.use('/api/v1', router);
+app.use('/api/v1/ingredients', router);
 
 app.get('/docs/swagger.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -22,11 +22,11 @@ app.get('/docs/swagger.json', (req, res) => {
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/', (req, res) => {
-    res.json({ status: 'ok', message: 'Foodtruck API' });
+    res.json({ status: 'ok', message: 'Foodtruck ingredients API' });
 });
 
 app.use((err, req, res, next) => {
-    console.error(err);
+    if (!err.status || err.status >= 500) console.error(err);
 
     if (!res.headersSent) {
         return res.status(err.status || 500).json({
